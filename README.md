@@ -7,4 +7,4 @@ free to fork and PRs are of course accepted if you deem them worthile.
 The contents:
 
 * get_ml.py: Poor man's podcatcher. Originally created to download Malicious Life episodes, it can be tweaked to download other podcasts 
-too.
+too. Use with your favourite scheduler including cron, anachron or a user systemd-timer :-).
