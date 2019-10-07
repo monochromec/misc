@@ -86,7 +86,7 @@ def download_mp3(file_name, url):
 def get_feed(path, url, show_name, suffix, date_func):
     rss = feedparser.parse(url)
     # Cehck if the parser caught an exception
-    if 'bozo' in rss:
+    if 'bozo_exception' in rss:
        print('Caught exception in RSS parse: {}', str(rss['bozo_exception']), file=sys.stderr)
     else:
         if rss.status == 200:
@@ -96,27 +96,27 @@ def get_feed(path, url, show_name, suffix, date_func):
                     name = i['title'].replace(' ', '.').replace('/', '-')
                 else:
                     name = show_name
-                    if 'published' in i:
-                        date = date_func(i['published'])
-                    else:
-                        date = datetime.datetime.now()
-                        # Transform according to ID3 v2 published format
-                        date_id3 = date.strftime('%Y-%m-%d')
-                        if 'links' in i:
-                            li = i['links']
-                            for j in li:
-                                if 'href' in j:
-                                    if j['href'].endswith(suffix):
-                                        if name[-1] != '.':
-                                            name += '.'
-                                            file_name = path + '/' + name + date_id3 + '.mp3'
-                                            if not check_presence(file_name) or os.path.getsize(file_name) == 0:
-                                                # if download went OK, store metadata
-                                                if download_mp3(file_name, j['href']):
-                                                    store_meta(file_name, i, date_id3)
-                                                else:
-                                                    # Remove file if download went south
-                                                    os.unlink(file_name)
+                if 'published' in i:
+                    date = date_func(i['published'])
+                else:
+                    date = datetime.datetime.now()
+                # Transform according to ID3 v2 published format
+                date_id3 = date.strftime('%Y-%m-%d')
+                if 'links' in i:
+                    li = i['links']
+                    for j in li:
+                        if 'href' in j:
+                            if j['href'].endswith(suffix):
+                                if name[-1] != '.':
+                                    name += '.'
+                                    file_name = path + '/' + name + date_id3 + '.mp3'
+                                    if not check_presence(file_name) or os.path.getsize(file_name) == 0:
+                                        # if download went OK, store metadata
+                                        if download_mp3(file_name, j['href']):
+                                            store_meta(file_name, i, date_id3)
+                                        else:
+                                            # Remove file if download went south
+                                            os.unlink(file_name)
 
 # Main function: check for curl presence and read config.
 def main():
