@@ -60,7 +60,10 @@ def store_meta(target, entry, date):
             
     audio['title'] = entry['title']
     audio['date'] = date
-    audio.save(target, v2_version=3)
+    try:
+        audio.save(target, v2_version=3)
+    except MutagenError as e:
+        print('Could not save audio metadata: {}'.format(str(e)), file=sys.stderr)
 
 # Download a single file based on the URL parameter. At the moment, this requires a native
 # cURL binary as I couldn't get pycurl to run in a fast / performant way. Tips are welcome!
@@ -73,40 +76,46 @@ def download_mp3(file_name, url):
     except: 
         print('Could not download {}'.format(url))
         sucess = False
+    if proc.returncode != 0:
+        print('curl returned exit code {}'.format(proc.returncode), file=sys.stderr)
+        success = False
     return success
 
 # Main working horse. Get RSS feed and iterate through the list of items, downloading these if a corresponding
 # file doesn't exist a the configured location (or has file size 0).
 def get_feed(path, url, show_name, suffix, date_func):
     rss = feedparser.parse(url)
-    if rss.status == 200:
-        # Sanitize title for proper file name
-        for i in rss['items']:
-            if 'title' in i:
-                name = i['title'].replace(' ', '.').replace('/', '-')
-            else:
-                name = show_name
-            if 'published' in i:
-                date = date_func(i['published'])
-            else:
-                date = datetime.datetime.now()
-            # Transform according to ID3 v2 published format
-            date_id3 = date.strftime('%Y-%m-%d')
-            if 'links' in i:
-                li = i['links']
-                for j in li:
-                    if 'href' in j:
-                        if j['href'].endswith(suffix):
-                            if name[-1] != '.':
-                                name += '.'
-                            file_name = path + '/' + name + date_id3 + '.mp3'
-                            if not check_presence(file_name) or os.path.getsize(file_name) == 0:
-                                # if download went OK, store metadata
-                                if download_mp3(file_name, j['href']):
-                                    store_meta(file_name, i, date_id3)
-                                else:
-                                    # Remove file if download went south
-                                    os.unlink(file_name)
+    if 'bozo' in rss:
+       print('Caught exception in RSS parse: {}', str(rss['bozo_exception']), file=sys.stderr)
+    else:
+        if rss.status == 200:
+            # Sanitize title for proper file name
+            for i in rss['items']:
+                if 'title' in i:
+                    name = i['title'].replace(' ', '.').replace('/', '-')
+                else:
+                    name = show_name
+                    if 'published' in i:
+                        date = date_func(i['published'])
+                    else:
+                        date = datetime.datetime.now()
+                        # Transform according to ID3 v2 published format
+                        date_id3 = date.strftime('%Y-%m-%d')
+                        if 'links' in i:
+                            li = i['links']
+                            for j in li:
+                                if 'href' in j:
+                                    if j['href'].endswith(suffix):
+                                        if name[-1] != '.':
+                                            name += '.'
+                                            file_name = path + '/' + name + date_id3 + '.mp3'
+                                            if not check_presence(file_name) or os.path.getsize(file_name) == 0:
+                                                # if download went OK, store metadata
+                                                if download_mp3(file_name, j['href']):
+                                                    store_meta(file_name, i, date_id3)
+                                                else:
+                                                    # Remove file if download went south
+                                                    os.unlink(file_name)
 
 # Main function: check for curl presence and read config.
 def main():
@@ -114,17 +123,25 @@ def main():
         print('No curl in $PATH, aborting', file=sys.stderr)
         return -1
 
-    parser = configparser.ConfigParser()
-    parser.read('config.ini')
-    for i in parser.sections():
-        sec = parser[i]
+    if check_presence('./config.ini'):
+        parser = configparser.ConfigParser()
+        parser.read('config.ini')
+        for i in parser.sections():
+            sec = parser[i]
 
-        if len(sec['filename']) == 0:
-            file_name = 'stream.mp3'
-        else:
-            file_name = sec['filename']
+            if len(sec['filename']) == 0:
+                file_name = 'stream.mp3'
+            else:
+                file_name = sec['filename']
 
-        get_feed(sec['path'], sec['url'], i, file_name, get_date)
+                path = sec['path']
+
+            if os.path.isdir(path) and os.access(path, os.W_OK):
+                get_feed(path, sec['url'], i, file_name, get_date)
+            else:
+                print('{} is not a path or not writable, skipping'.format(path), file=sys.stderr)
+    else:
+        print('No config.ini in current directory, exiting', file=sys.stderr)
 
 if __name__ == '__main__':
     exit (main())
