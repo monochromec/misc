@@ -85,6 +85,7 @@ def download_mp3(file_name, url):
 # file doesn't exist a the configured location (or has file size 0).
 def get_feed(path, url, show_name, suffix, date_func):
     rss = feedparser.parse(url)
+    # Cehck if the parser caught an exception
     if 'bozo' in rss:
        print('Caught exception in RSS parse: {}', str(rss['bozo_exception']), file=sys.stderr)
     else:
