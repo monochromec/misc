@@ -3,6 +3,8 @@
 # This software is licensed unter the GPL v3. Please refer to the LICENSE file as part of this repository 
 # or to https://www.gnu.org/licenses/gpl-3.0.html for further details about this license.
 #
+# (C) 2019 by Chris Zimmermann (monochromec@gmail.com)
+#
 # Poor man's podcatcher
 # 
 # Motivation to build this was a podcast called Malicious Life changing its provider causing 
