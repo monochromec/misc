@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 #
+# This software is licensed unter the GPL v3. Please refer to the LICENSE file as part of this repository 
+# or to https://www.gnu.org/licenses/gpl-3.0.html for further details about this license.
+#
 # Poor man's podcatcher
+# 
 # Motivation to build this was a podcast called Malicious Life changing its provider causing 
 # my original RSS feed downloader to repeatly download episodes all named "stream.mp3" (the
 # original file as offered by the RSS feed).
